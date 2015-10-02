@@ -1,9 +1,11 @@
 #! /usr/bin/env python
 '''
-Creates an array file for use by calc_sense.py.  The main product is the uv coverage produced by the array during the time it takes the sky to drift through the primary beam; other array parameters are also saved.  Array specific information comes from an aipy cal file.  If opts.track is set, produces the uv coverage
-for the length specified instead of that set by the primary beam.'''
+Creates an array file for use by calc_sense.py.  The main product is the uv coverage produced by the array during the time
+it takes the sky to drift through the primary beam; other array parameters are also saved.  Array specific information comes from an aipy cal file.
+ If opts.track is set, produces the uv coverage for the length specified instead of that set by the primary beam.'''
 import aipy as a, numpy as n
 import optparse, sys
+from conversion_utils import *
 
 o = optparse.OptionParser()
 o.set_usage('mk_array_file.py -C [calfile]')
@@ -14,24 +16,12 @@ o.add_option('--bl_max', dest='bl_max', default=None, type=float,
     help="Set the maximum baseline (in meters) to include in the uv plane.  Use to exclude outriggers with little EoR sensitivity to speed up calculation.") 
 opts, args = o.parse_args(sys.argv[1:])
 
-#============================SIMPLE GRIDDING FUNCTION=======================
 
-def beamgridder(xcen,ycen,size):
-    crds = n.mgrid[0:size,0:size]
-    cen = size/2 - 0.5 # correction for centering
-    xcen += cen
-    ycen = -1*ycen + cen
-    beam = n.zeros((size,size))
-    if round(ycen) > size - 1 or round(xcen) > size - 1 or ycen < 0. or xcen <0.: 
-        return beam
-    else:
-        beam[round(ycen),round(xcen)] = 1. #single pixel gridder
-        return beam
 
 #==============================READ ARRAY PARAMETERS=========================
 
 #load cal file
-aa = a.cal.get_aa(opts.cal,n.array([.150]))
+aa = a.cal.get_aa(opts.cal, n.array([.150]))
 nants = len(aa)
 prms = aa.get_arr_params()
 if opts.track:

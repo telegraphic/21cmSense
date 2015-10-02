@@ -52,8 +52,9 @@ class AntennaArray(a.pol.AntennaArray):
 
 #Set antenna positions here; for regular arrays like Hera we can use an algorithm; otherwise antpos should just be a list of [x,y,z] coords in light-nanoseconds
 nside = 7. #hex number
-L = 1400 / a.const.len_ns 
-dL = 1212 / a.const.len_ns #close packed hex
+L = 10.0
+scalefac = 1.0 # 1400. / 1212
+dL = L * scalefac    #close packed hex
 antpos = []
 cen_y, cen_z = 0, 0
 for row in n.arange(nside):
@@ -63,25 +64,39 @@ for row in n.arange(nside):
         if row != 0:
             antpos.append(((cen_x + dx)*L, -row*dL, cen_z))
 
+import pylab as plt
+import numpy as np
+antpos = np.array(antpos)
+plt.plot(antpos[:,0], antpos[:, 1], 'o', c='#333333')
+plt.xlabel('x-pos [m]')
+plt.ylabel('y-pos [m]')
+plt.ylim(-63, 63)
+plt.minorticks_on()
+plt.savefig("figures/antenna-positions.pdf")
+plt.show()
+
 #Set other array parameters here
 prms = {
-    'name': os.path.basename(__file__)[:-3], #remove .py from filename
-    'loc': ('38:25:59.24',  '-79:51:02.1'), # Green Bank, WV
+    'name': os.path.basename(__file__)[:-3],    #remove .py from filename
+    'loc': ('37.240391', '-118.281667', 1184),  # Owens Valley
     'antpos': antpos,
     'beam': a.fit.Beam2DGaussian,
-    'dish_size_in_lambda': 7., #in units of wavelengths at 150 MHz = 2 meters; this will also define the observation duration
-    'Trx': 1e5 #receiver temp in mK
+    'dish_size_in_lambda': 2.0,
+    'Trx': 500 * 1e3  # receiver temp in mK, T_sky is taken care of later
 }
 
 #=======================END ARRAY SPECIFIC PARAMETERS==========================
 
 def get_aa(freqs):
     '''Return the AntennaArray to be used for simulation.'''
+    print freqs
     location = prms['loc']
     antennas = []
     nants = len(prms['antpos'])
     for i in range(nants):
-        beam = prms['beam'](freqs, xwidth=(0.45/prms['dish_size_in_lambda']), ywidth=(0.45/prms['dish_size_in_lambda'])) #as it stands, the size of the beam as defined here is not actually used anywhere in this package, but is a necessary parameter for the aipy Beam2DGaussian object
+        beam = prms['beam'](freqs, xwidth=n.pi/8, ywidth=n.pi/8)
+        # as it stands, the size of the beam as defined here is not actually used anywhere in this package,
+        # # but is a necessary parameter for the aipy Beam2DGaussian object
         antennas.append(a.fit.Antenna(0, 0, 0, beam))
     aa = AntennaArray(prms['loc'], antennas)
     p = {}
