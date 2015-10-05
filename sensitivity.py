@@ -3,20 +3,21 @@
 # sensitivity.py
 
 Calculates the expected sensitivity of a 21cm experiment to a given 21cm power spectrum.
-Requires as input an array .npz file created with mk_array_file.py.
+Requires as input an array .npz file created with generate_uv_coverage.py.
 """
 
 import aipy as a, numpy as n, optparse, sys
 from scipy import interpolate
 import os
 from conversion_utils import *
+import hickle as hkl
 
 
 def calc_sense(arr_file, opts, print_report=True):
     """ Calculate sensitivity of an antenna array.
 
     Args:
-        arr_file (str): filename of input array, as made with mk_array_file.py. Should
+        arr_file (str): filename of input array, as made with generate_uv_coverage.py. Should
             end with .npz.
         opts (dict): A dictionary of observation options / parameters. Keys are:
             'model' (str): The model of the foreground wedge to use.  Three options are 'pess' (all k modes inside
@@ -56,8 +57,8 @@ def calc_sense(arr_file, opts, print_report=True):
 
     # ====================OBSERVATION/COSMOLOGY PARAMETER VALUES====================
 
-    # Load in data from array file; see mk_array_file.py for definitions of the parameters
-    array = n.load(arr_file)
+    # Load in data from array file; see generate_uv_coverage.py for definitions of the parameters
+    array = hkl.load(arr_file)
     name = array['name']
     obs_duration = array['obs_duration']
     dish_size_in_lambda = array['dish_size_in_lambda']
@@ -108,7 +109,8 @@ def calc_sense(arr_file, opts, print_report=True):
     uv_coverage *= t_int
     SIZE = uv_coverage.shape[0]
 
-    # Cut unnecessary data out of uv coverage: auto-correlations & half of uv plane (which is not statistically independent for real sky)
+    # Cut unnecessary data out of uv coverage: auto-correlations & half of uv plane
+    # (which is not statistically independent for real sky)
     uv_coverage[SIZE / 2, SIZE / 2] = 0.
     uv_coverage[:, :SIZE / 2] = 0.
     uv_coverage[SIZE / 2:, SIZE / 2] = 0.
@@ -118,6 +120,16 @@ def calc_sense(arr_file, opts, print_report=True):
 
     #loop over uv_coverage to calculate k_pr
     nonzero = n.where(uv_coverage > 0)
+
+    # Precalculate bm and Tsys
+    Tsys = Tsky + Trx
+    bm2 = bm / 2.  #beam^2 term calculated for Gaussian; see Parsons et al. 2014
+    bm_eff = bm ** 2 / bm2  # this can obviously be reduced; it isn't for clarity
+
+    bm_eff = (36.2/57.3)**2
+
+    #print "BM: %2.2f    Tsys: %2.2fK" % (bm_eff, Tsys / 1e3)
+
     for iu, iv in zip(nonzero[1], nonzero[0]):
         u, v = (iu - SIZE / 2) * dish_size_in_lambda, (iv - SIZE / 2) * dish_size_in_lambda
         umag = n.sqrt(u ** 2 + v ** 2)
@@ -143,13 +155,6 @@ def calc_sense(arr_file, opts, print_report=True):
             if k > n.max(mk): continue
             tot_integration = uv_coverage[iv, iu] * opts['ndays']
             delta21 = p21(k)
-            Tsys = Tsky + Trx
-            bm2 = bm / 2.  #beam^2 term calculated for Gaussian; see Parsons et al. 2014
-            bm_eff = bm ** 2 / bm2  # this can obviously be reduced; it isn't for clarity
-
-            #bm_eff = 1.9
-
-            #print "BM EFF: %s" % bm_eff
 
             scalar = X2Y(z) * bm_eff * B * k ** 3 / (2 * n.pi ** 2)
             Trms = Tsys / n.sqrt(2 * (B * 1e9) * tot_integration)
@@ -185,8 +190,18 @@ def calc_sense(arr_file, opts, print_report=True):
 
     #save results to output npz
     eorbn = os.path.basename(opts['eor'])
-    n.savez('output/%s_%s_%.3f_%s.npz' % (name, opts['model'], opts['freq'], eorbn), ks=kmag, errs=sense1d,
-            T_errs=Tsense1d)
+
+    sense_dict = {
+        'name': name,
+        'model': opts['model'],
+        'freq': opts['freq'],
+        'eorbn': eorbn,
+        'ks': kmag,
+        'errs': sense1d,
+        'T_errs': Tsense1d
+    }
+
+    hkl.dump(sense_dict, 'sensitivities/%s_%s_%.3f_%s.hkl' % (name, opts['model'], opts['freq'], eorbn))
 
     #calculate significance with least-squares fit of amplitude
     A = p21(kmag)

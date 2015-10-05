@@ -1,0 +1,839 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+%%% LaTeX Template: Article/Thesis/etc. with colored headings and special fonts
+%%%
+%%% Source: http://www.howtotex.com/
+%%% Feel free to distribute this template, but please keep to referal to http://www.howtotex.com/ here.
+%%% February 2011
+
+%%%%% Preamble
+\usepackage[bitstream-charter]{mathdesign}
+
+% Input encoding
+% Math
+\usepackage{xcolor}\definecolor{bl}{rgb}{0.0,0.2,0.6} 
+\usepackage{sectsty}\usepackage[compact]{titlesec}\allsectionsfont{\color{bl}\scshape\selectfont}
+
+%%%%% Definitions
+% Define a new command that prints the title only
+% Begin definition
+\def\printtitle{%						% Define command: \printtitle
+    {\color{bl} \centering \huge \sc \textbf{\@title}\par}}		% Typesetting
+% End definition
+
+\title{4-bit Quantization of F-engine data \\
+\large \vspace*{-10pt}  LEDA Memorandum 38 \vspace*{10pt}
+}
+
+% Define a new command that prints the author(s) only
+% Begin definition
+\def\printauthor{%					% Define command: \printauthor
+    {\centering \small \@author}}				% Typesetting
+% End definition
+
+
+
+% Custom headers and footers
+\usepackage{fancyhdr}					% Enabling the custom headers/footers
+\usepackage{lastpage}% Header (empty)
+\lhead{}
+\chead{}
+\rhead{}
+% Footer (you may change this to your own needs)
+
+\cfoot{}
+\rfoot{\footnotesize page \thepage\ of \pageref{LastPage}}	% "Page 1 of 2"
+\renewcommand{\headrulewidth}{0.0pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Change the abstract environment
+\usepackage[runin]{abstract}% runin option for a run-in title
+\setlength{\absleftindent}{30pt}		% left margin
+\setlength{\absrightindent}{30pt}		% right margin
+\abslabeldelim{\quad}						% 
+\setlength{\abstitleskip}{-10pt}
+\renewcommand{\abstractname}{}
+\renewcommand{\abstracttextfont}{\small \slshape}	% slanted text
+
+\usepackage{pgfplotstable}
+\usepackage{siunitx}
+%%% Start of the document
+\end_preamble
+\use_default_options false
+\begin_modules
+logicalmkup
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package none
+\inputencoding iso8859-1
+\fontencoding T1
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_math auto
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize 10
+\spacing other 1.2
+\use_hyperref false
+\papersize a4paper
+\use_geometry true
+\use_package amsmath 2
+\use_package amssymb 2
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 0
+\use_package mathtools 1
+\use_package mhchem 0
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine natbib
+\cite_engine_type authoryear
+\biblio_style plainnat
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 3cm
+\topmargin 3cm
+\rightmargin 3cm
+\bottommargin 3cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle fancy
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+%%% Top of the page: Author, Title and Abstact
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+title{Baseline Redundant Array With LWA-OVRO (BRAWL) 
+\backslash
+
+\backslash
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+large 
+\backslash
+vspace*{-10pt}  Concept development notes 
+\backslash
+vspace*{10pt} }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+author{% D.
+ C.
+ Price et.
+ al
+\backslash
+
+\backslash
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+  dprice@cfa.harvard.edu 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+  
+\backslash
+vspace{20pt} 
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lfoot{
+\backslash
+footnotesize 
+\backslash
+texttt{BRAWL concept development}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+printtitle
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+printauthor
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+The 
+\emph on
+Baseline Redundant Array With LWA-OVRO (BRAWL),
+\emph default
+ is a proposed 127-element interferometric array that will be co-located
+ with the Long Wavelength Array (LWA) at Owens Valley Radio Observatory
+ (OVRO).
+ BRAWL follows the footsteps of the PAPER and HERA telecopes, that exploit
+ redundancy to improve calibration and to target uv-modes of interest.
+ Unlike PAPER and HERA, BRAWL will be targeting the period between the Dark
+ Ages and the Epoch of Reionization, which is referred to as 
+\begin_inset Quotes eld
+\end_inset
+
+Cosmic Dawn
+\begin_inset Quotes erd
+\end_inset
+
+ or the 
+\begin_inset Quotes eld
+\end_inset
+
+Epoch of X-ray heating
+\begin_inset Quotes erd
+\end_inset
+
+ (EoX); that is, measurement of the 21-cm emission line at redshifts between
+ 10-40.
+ 
+\end_layout
+
+\begin_layout Standard
+This memo details the results of simulations of sensitivity, made with the
+ 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+{
+\backslash
+tt 21cmsense}
+\end_layout
+
+\end_inset
+
+ package (Pober et.
+ al.
+ [REF]).
+ The code has been modified to allow looping over multiple redshifts, and
+ to allow redshift to be added as a command-line parameter which is parsed
+ to compute frequency parameters.
+ 
+\end_layout
+
+\begin_layout Section
+Input models and parameters
+\end_layout
+
+\begin_layout Paragraph
+Power spectra model
+\end_layout
+
+\begin_layout Standard
+A.
+ Fialkov has run some initial simulations for the expected 21-cm signal
+ over 
+\begin_inset Formula $7<z<40$
+\end_inset
+
+, for a range of 
+\begin_inset Formula $k$
+\end_inset
+
+ values between 0.0-1.6 (Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:pspec"
+
+\end_inset
+
+), which are used as an input for 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+{
+\backslash
+tt 21cmsense}
+\end_layout
+
+\end_inset
+
+.
+ These power spectra (PS) are for a `bleak' model and the signal is likely
+ stronger.
+ Note that there is noise at lower 
+\begin_inset Formula $k$
+\end_inset
+
+ due to cosmic variance in the data cube used.
+\end_layout
+
+\begin_layout Paragraph
+Antenna array
+\end_layout
+
+\begin_layout Standard
+For antenna placement, we are using a hexagonal-packed 127-element array
+ with 10-m spacing (Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:antpos"
+
+\end_inset
+
+).
+ While for some 
+\begin_inset Formula $k$
+\end_inset
+
+ modes closer spacing would be preferable, mutual coupling between antenna
+ elements is of concern.
+\end_layout
+
+\begin_layout Paragraph
+Antenna parameters
+\end_layout
+
+\begin_layout Standard
+We assume the use of an LWA gain antenna, with the approximation that the
+ gain is a constant 9 dB over the frequency range covered (beam solid angle
+ of 
+\begin_inset Formula $\pi/2$
+\end_inset
+
+).
+ For compatibility with 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+{
+\backslash
+tt 21cmsense}
+\end_layout
+
+\end_inset
+
+, this is expressed as a 2D Gaussian with beamwidth 
+\begin_inset Formula $\pi/8$
+\end_inset
+
+, and the parameter 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+{
+\backslash
+tt
+\end_layout
+
+\end_inset
+
+ dish_size_in_lambda
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+ is set to 2.
+ Ideally, we would use antenna parameters as modelled from an EM package;
+ this is worth looking into at a later date.
+\end_layout
+
+\begin_layout Paragraph
+System temperature
+\end_layout
+
+\begin_layout Standard
+The system temperature is given by 
+\begin_inset Formula 
+\[
+T_{sys}=T_{rx}+T_{sky}(\nu),
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $T_{rx}$
+\end_inset
+
+ is the receiver temperature, and is set to 500 K, and using a sky model
+ 
+\begin_inset Formula 
+\[
+T_{sky}=T_{0}\lambda^{2.55}
+\]
+
+\end_inset
+
+with 
+\begin_inset Formula $T_{0}=60$
+\end_inset
+
+.
+ The sky model thus gives a temperature of 1369 K at 88 MHz, increasing
+ to 21288 K at 30 MHz.
+ Using a more realistic sky model (i.e.
+ based upon LEDA observations) would be advantageous for future simulations.
+\end_layout
+
+\begin_layout Paragraph
+Observation parameters
+\end_layout
+
+\begin_layout Standard
+Default parameters are used elsewhere in the code.
+ This corresponds to 180 days of 6-hour drift-scan observations.
+ A cosmological bandwidth of 8 MHz (redshift range that is co-evaluated)
+ is used.
+ Both conservative and optimistic models for the foreround wedge are presented.
+\end_layout
+
+\begin_layout Section
+Results
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Simulated signal-to-noise ratios for BRAWL, over 
+\begin_inset Formula $15<z<25$
+\end_inset
+
+.
+ 
+\end_layout
+
+\end_inset
+
+
+\size footnotesize
+
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{tabular}{SSSS}
+\end_layout
+
+\begin_layout Plain Layout
+
+{Redshift} & {Pessimistic} & {Moderate} & {Optimistic} 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+15 & 1.00e-01 & 1.68e-01 & 3.41e+00 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+16 & 1.24e-01 & 2.05e-01 & 5.85e+00 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+17 & 1.48e-01 & 2.40e-01 & 8.41e+00 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+18 & 1.15e-01 & 1.86e-01 & 6.37e+00 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+19 & 8.31e-02 & 1.38e-01 & 2.28e+00 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+20 & 1.71e-01 & 2.84e-01 & 1.01e+00 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+21 & 2.91e-01 & 4.78e-01 & 1.82e+00 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+22 & 2.89e-01 & 4.62e-01 & 1.60e+00 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+23 & 1.99e-01 & 3.23e-01 & 1.11e+00 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+24 & 1.12e-01 & 1.82e-01 & 6.18e-01 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+25 & 5.00e-02 & 8.27e-02 & 2.82e-01 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+hline
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{tabular}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+Using 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+{
+\backslash
+tt 21cmsense}
+\end_layout
+
+\end_inset
+
+, we computed the expected signal-to-noise ratio for the A.
+ Fialkov PS model, under `conservative' and `optimistic' foreground removal
+ models.
+ Following from Pober et.
+ al., consevative is defined as the foreground wedge extending 0.1 h Mpc
+\begin_inset Formula $^{−1}$
+\end_inset
+
+ beyond horizon limit, and optimistic is defined as the foreground wedge
+ extending only into the FWHM of the instrument's primary beam.
+\end_layout
+
+\begin_layout Standard
+Simulations suggest that a 
+\begin_inset Formula $>5\sigma$
+\end_inset
+
+ detection of the PS can be made over the redshift range 
+\begin_inset Formula $16\leq z\leq18$
+\end_inset
+
+.
+ The conservative model suggests that foreground `avoidance' only will not
+ result in SNR levels high enough for detection, meaning that a foreground
+ model is required.
+ The minimally-redundant LWA-OVRO array would therefore be required for
+ foreground characterization.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename ../figures/anastasia-model.pdf
+	width 13.2cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Simulated 21-cm power spectrum (preliminary)
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:pspec"
+
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /workdata/21cmSense/figures/antenna-positions.pdf
+	width 13.2cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Antenna positions for the proposed BRAWL instrument
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:antpos"
+
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /workdata/21cmSense/figures/detection-snr.pdf
+	width 13.2cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Simulated signal-to-noise ratio (SNR) for power spectra as a function of
+ redshift.
+ The shaded area corresponds to the FM radio band, over which RFI is a significa
+nt impediment to astronomical observations.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:snr"
+
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_body
+\end_document
