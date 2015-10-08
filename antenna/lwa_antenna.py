@@ -96,38 +96,16 @@ class LwaBeamPattern(object):
         if show:
             plt.show()
 
-    def view2(self, show=True):
-        """ View generated beam """
-        
-        if self.generated_beam_data is None:
-            raise RuntimeError("Beam pattern not generated yet. Run generate() first.")
-
-        plt.figure(figsize=(8,4))
-        plt.subplot(121)
-        tmin, tmax = self.generated_beam_theta[0], self.generated_beam_theta[-1]
-        pmin, pmax = self.generated_beam_phi[0], self.generated_beam_phi[-1]
-        plt.imshow(10**(self.generated_beam_data / 10), extent=(tmin, tmax, pmin, pmax), aspect='auto')
-        plt.xlabel("Theta [deg]")
-        plt.ylabel("Phi [deg]")
-        #plt.colorbar(orientation='horizontal')
-        
-        plt.subplot(122)
-        beam_slice = self.generated_beam_data[self.generated_beam_data.shape[0]/2]
-        beam_slice2 = 10*np.log10((10.**(beam_slice / 10.))**2)
-        beam_slice = 10*np.log10(10.0**(beam_slice / 10.))
-        print self.generated_beam_phi.shape, beam_slice.shape
-        plt.plot(self.generated_beam_theta, beam_slice, c='#333333')
-        plt.plot(self.generated_beam_theta, beam_slice2, c='#cc0000')
-        plt.xlabel("Theta [deg]")
-        plt.ylabel("Normalized gain [dB]")
-        plt.xlim(-91, 91)
-        #plt.ylim(-30, 3)
-        plt.minorticks_on()
-        
-        plt.tight_layout()
-        if show:
-            plt.show()
     
+    def compute_solid_angle(self):
+        """ Compute the beam solid angle in steradians. """
+        beam_lin = 10.0**(self.generated_beam_data / 10.0)
+        theta = np.deg2rad(self.generated_beam_theta)  + np.pi/2
+        beam_weighted = beam_lin * np.sin(theta)
+        bm  = np.average(beam_weighted) / np.max(beam_weighted)
+
+        return bm
+
     def compute_bm_eff(self):
         """ Compute the omega prime (effective beam) from Pober et. al. 2013
         
@@ -149,13 +127,22 @@ class LwaBeamPattern(object):
         return bm_eff
 
     def compute_fwhm(self):
-        pass
+        """ Return FWHM of beam in radians.
+
+        Notes:
+            Assumes symmetric beam.
+        """
+        beam_slice = self.generated_beam_data[self.generated_beam_data.shape[0]/2]
+        hm_idx = np.argmin(np.abs(beam_slice + 3.0))
+        hwhm = self.generated_beam_theta[hm_idx]
+        return np.abs(np.deg2rad(hwhm * 2))
 
 if __name__ == "__main__":
     lwa = LwaBeamPattern()
     lwa.generate(60)
     #lwa.view2()
-    lwa.bm_eff()
-
+    print lwa.compute_bm_eff()
+    print lwa.compute_solid_angle()
+    print lwa.compute_fwhm()
         
         
