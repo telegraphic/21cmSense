@@ -25,6 +25,7 @@ class AntennaArray(a.pol.AntennaArray):
                     elif val == 'top_y': prms[k]['top_y'] = top_pos[1]
                     elif val == 'top_z': prms[k]['top_z'] = top_pos[2]
         return prms
+
     def set_ant_params(self, prms):
         changed = a.fit.AntennaArray.set_params(self, prms)
         for i, ant in enumerate(self):
@@ -45,17 +46,15 @@ class AntennaArray(a.pol.AntennaArray):
             if ant_changed: ant.pos = np.dot(np.linalg.inv(self._eq2zen), top_pos)
             changed |= ant_changed
         return changed
+
     def get_arr_params(self):
         return self.array_params
+
     def set_arr_params(self, prms):
         for param in prms:
             self.array_params[param] = prms[param]
-            if param == 'dish_size_in_lambda':
-                FWHM = 2.35*(0.45/prms[param]) #radians
-                self.array_params['obs_duration'] = 60.*FWHM / (15.*a.const.deg)# minutes it takes the sky to drift through beam FWHM
-            if param == 'antpos':
-                bl_lens = np.sum(np.array(prms[param])**2,axis=1)**.5
         return self.array_params
+
     def view(self):
         ant_pos = []
         for ant in self.ants:
@@ -111,16 +110,20 @@ def save_antenna_array(antpos, filename_out, directory_out="array_geometries"):
     fout = os.path.join(directory_out, filename_out)
     np.savetxt(fout, antpos, header="antpos_x antpos_y antpos_z")
 
+def load_antenna_array(filename, directory="array_geometries"):
+    """Load an antenna array from file."""
+    fin = os.path.join(directory, filename)
+    ant_pos = np.genfromtxt(fin)
+    return ant_pos
+
 def generate_aa(arr_pos, ant_pos, params):
     """Return the AntennaArray to be used for simulation."""
-    freqs = params['freqs']
     antennas = []
 
     n_ants = len(ant_pos)
     for i in range(n_ants):
-        beam = params['beam'](freqs, xwidth=np.pi/8, ywidth=np.pi/8)
-        # as it stands, the size of the beam as defined here is not actually used anywhere in this package,
-        # # but is a necessary parameter for the aipy Beam2DGaussian object
+        beam = a.fit.Beam(np.array([1.0]))     # Beam is computed at 100 MHz. Beam object is used for UVW calcs
+                                               # Which are returned in wavelength (I think)
         antennas.append(a.fit.Antenna(0, 0, 0, beam))
     aa = AntennaArray(arr_pos, antennas)
     p = {}
@@ -143,9 +146,6 @@ if __name__ == "__main__":
     #Set other array parameters here
     params = {
         'name': 'BRAWL',
-        'beam': a.fit.Beam2DGaussian,
-        'dish_size_in_lambda': 2.0,
-        'freqs': np.array([.150]),
         'Trx': 500 * 1e3  # receiver temp in mK, T_sky is taken care of later
     }
 

@@ -32,9 +32,9 @@ def generate_uv_coverage(aa, bl_max=None, track=None):
         obs_duration=60.*track
         name = prms['name']+'track_%.1fhr' % track
     else:
-        obs_duration = prms['obs_duration']
+        obs_duration = 12.0 * 60  # A dipole-type antenna sees the entire sky for 12 hours
         name = prms['name']+'drift'; print name
-    dish_size_in_lambda = prms['dish_size_in_lambda']
+    #dish_size_in_lambda = prms['dish_size_in_lambda']
 
     #==========================FIDUCIAL OBSERVATION PARAMETERS===================
 
@@ -46,51 +46,52 @@ def generate_uv_coverage(aa, bl_max=None, track=None):
     start_jd = cen_jd - (1./24)*((obs_duration/t_int)/2)
     end_jd = cen_jd + (1./24)*(((obs_duration-1)/t_int)/2)
     times = n.arange(start_jd,end_jd,(1./24/t_int))
-    print 'Observation duration:', start_jd, end_jd
-
-    fq = .150 #all calculations in calc_sense.py are relative to a fiducial 150 MHz; changing this parameter will not change your observing band, but rather break the scaling relations in calc_sense.  to change your observing band, use the command line option in calc_sense.
+    print 'Observation duration (julian days): %.3f' % (end_jd - start_jd)
 
     #================================MAIN CODE===================================
 
     cnt = 0
     uvbins = {}
 
-    cat = a.src.get_catalog('z') #create zenith source object
+    cat = a.src.get_catalog('z')                        # create zenith source object
     aa.set_jultime(cen_jd)
     obs_lst = aa.sidereal_time()
-    obs_zen = a.phs.RadioFixedBody(obs_lst,aa.lat)
-    obs_zen.compute(aa) #observation is phased to zenith of the center time of the drift
+    obs_zen = a.phs.RadioFixedBody(obs_lst, aa.lat)
+    obs_zen.compute(aa)                                 # observation is phased to zenith of the
+                                                        # center time of the drift
 
     #find redundant baselines
     bl_len_max = 0.
     for i in xrange(n_ants):
-        print 'working on antenna %i of %i' % (i, len(aa))
+        LinePrint('working on antenna %i of %i' % (i, len(aa)))
         for j in xrange(n_ants):
             if i == j:
                 continue #no autocorrelations
-            u,v,w = aa.gen_uvw(i,j,src=obs_zen)
-            bl_len = n.sqrt(u**2 + v**2)
+            u, v, w = aa.gen_uvw(i, j, src=obs_zen)
+            bl_len = n.sqrt(u ** 2 + v ** 2)
             if bl_len > bl_len_max:
                 bl_len_max = bl_len
-            uvbin = '%.1f,%.1f' % (u,v)
+            uvbin = '%.1f,%.1f' % (u, v)
             cnt +=1
             if not uvbins.has_key(uvbin):
-                uvbins[uvbin] = ['%i,%i' % (i,j)]
+                uvbins[uvbin] = ['%i,%i' % (i, j)]
             else:
-                uvbins[uvbin].append('%i,%i' % (i,j))
-    print 'There are %i baseline types' % len(uvbins.keys())
+                uvbins[uvbin].append('%i,%i' % (i, j))
+    print '\nThere are %i baseline types' % len(uvbins.keys())
 
-    print 'The longest baseline is %.2f meters' % (bl_len_max*(a.const.c/(fq*1e11))) #1e11 converts from GHz to cm
+    print 'The longest baseline is %.2f meters' % bl_len_max
     if bl_max:
-        bl_len_max = bl_max / (a.const.c/(fq*1e11)) #units of wavelength
-        print 'The longest baseline being included is %.2f m' % (bl_len_max*(a.const.c/(fq*1e11)))
+        bl_len_max = bl_max
+    print 'The longest baseline being included is %.2f m' % bl_len_max
 
-    #grid each baseline type into uv plane
-    dim = n.round(bl_len_max/dish_size_in_lambda)*2 + 1     # round to nearest odd
-    uvsum,quadsum = n.zeros((dim,dim)), n.zeros((dim,dim))  # quadsum adds all non-instantaneously-redundant
-                                                            # baselines incoherently
+    # grid each baseline type into uv plane
+    # Grid to lambda / 4 at 100 MHz
+    wl_100mhz = 2.99
+    dim = n.round(bl_len_max / (wl_100mhz)) + 1
+    uvsum, quadsum = n.zeros((dim, dim)), n.zeros((dim, dim))  # quadsum adds all non-instantaneously-redundant
+                                                               # baselines incoherently
     for cnt, uvbin in enumerate(uvbins):
-        print 'working on %i of %i uvbins' % (cnt+1, len(uvbins))
+        LinePrint('working on %i of %i uvbins' % (cnt+1, len(uvbins)))
         uvplane = n.zeros((dim,dim))
         for t in times:
             aa.set_jultime(t)
@@ -100,21 +101,20 @@ def generate_uv_coverage(aa, bl_max=None, track=None):
             nbls = len(uvbins[uvbin])
             i, j = bl.split(',')
             i, j = int(i), int(j)
-            u,v,w = aa.gen_uvw(i,j,src=obs_zen)
-            _beam = beamgridder(xcen=u/dish_size_in_lambda,ycen=v/dish_size_in_lambda,size=dim)
-            uvplane += nbls*_beam
-            uvsum += nbls*_beam
-        quadsum += (uvplane)**2
+            u, v, w = aa.gen_uvw(i, j, src=obs_zen) / (wl_100mhz)
+            _beam = beamgridder(xcen=u, ycen=v, size=dim)
+            uvplane += nbls * _beam
+            uvsum += nbls * _beam
+        quadsum += uvplane ** 2
+    print("")
 
     quadsum **= .5
 
-    print "Saving file as %s_arrayfile.hkl" % name
-
-    uv_coverage = {'uv_coverage': uvsum,
+    uv_coverage = {
+        'uv_coverage': uvsum,
         'uv_coverage_pess': quadsum,
         'name': name,
         'obs_duration': obs_duration,
-        'dish_size_in_lambda': dish_size_in_lambda,
         'Trx': prms['Trx'],
         't_int': t_int
     }
@@ -128,7 +128,7 @@ def save_uv_coverage(uv_coverage, directory_out):
 
 def plot_uv_coverage(uv_coverage, directory_out="figures"):
     fout = os.path.join(directory_out, "%s_uv_coverage.pdf" % uv_coverage['name'])
-    plt.imshow(uv_coverage['uv_coverage'])
+    plt.imshow(uv_coverage['uv_coverage'], interpolation='nearest', aspect='auto')
     plt.colorbar()
     plt.savefig(fout)
     plt.show()
@@ -136,7 +136,7 @@ def plot_uv_coverage(uv_coverage, directory_out="figures"):
 if __name__ == "__main__":
     o = optparse.OptionParser()
     o.set_usage('generate_uv_coverage.py [calfile]')
-    a.scripting.add_standard_options(o, cal=True)
+    #a.scripting.add_standard_options(o, cal=True)
     o.add_option('--track', dest='track', default=None, type=float,
         help="If set, calculate sensitivity for a tracked observation of this duration in hours; otherwise, "
              "calculate for a drift scan.")
@@ -154,9 +154,6 @@ if __name__ == "__main__":
     #Set other array parameters here
     params = {
         'name': 'BRAWL',
-        'beam': a.fit.Beam2DGaussian,
-        'dish_size_in_lambda': 2.0,
-        'freqs': np.array([.150]),
         'Trx': 500 * 1e3  # receiver temp in mK, T_sky is taken care of later
     }
 

@@ -6,14 +6,14 @@ Calculates the expected sensitivity of a 21cm experiment to a given 21cm power s
 Requires as input an array .npz file created with generate_uv_coverage.py.
 """
 
-import aipy as a, numpy as n, optparse, sys
+import numpy as n, optparse, sys
 from scipy import interpolate
 import os
 from conversion_utils import *
 import hickle as hkl
+from antenna import lwa_antenna
 
-
-def calc_sense(arr_file, opts, print_report=True):
+def calc_sense(arr_file, ps_model, opts, print_report=True):
     """ Calculate sensitivity of an antenna array.
 
     Args:
@@ -61,7 +61,6 @@ def calc_sense(arr_file, opts, print_report=True):
     array = hkl.load(arr_file)
     name = array['name']
     obs_duration = array['obs_duration']
-    dish_size_in_lambda = array['dish_size_in_lambda']
     Trx = array['Trx']
     t_int = array['t_int']
     if opts['model'] == 'pess':
@@ -72,31 +71,49 @@ def calc_sense(arr_file, opts, print_report=True):
     h = 0.7
     B = opts['bwidth']
     z = opts['z']
-    opts['freq'] = z2f(z)       # Frequency is now computed from input redshift
+    freq = z2f(z)                           # Frequency is now computed from input redshift
+    wl_meters = 2.99e8 / (freq * 1e9)
+    B = B_cosmo(freq, f0=.150, B0=B)        # Scale bandwidth with frequency
 
-
-    #dish_size_in_lambda = dish_size_in_lambda*(opts['freq']/.150)
+    #dish_size_in_lambda = dish_size_in_lambda*(freq/.150)
     # Dish size is no longer frequency scaled!
 
-    first_null = 1.22 / dish_size_in_lambda  #for an airy disk, even though beam model is Gaussian
-    bm = 1.13 * (2.35 * (0.45 / dish_size_in_lambda)) ** 2
     nchan = opts['nchan']
     kpls = dk_deta(z) * n.fft.fftfreq(nchan, B / nchan)
 
-    Tsky = 60e3 * (3e8 / (opts['freq'] * 1e9)) ** 2.55  # sky temperature in mK
+    Tsky = 60e3 * (3e8 / (freq * 1e9)) ** 2.55  # sky temperature in mK
     n_lstbins = opts['n_per_day'] * 60. / obs_duration
+
+    # Precalculate bm and Tsys
+    Tsys = Tsky + Trx
+    lwa = lwa_antenna.LwaBeamPattern()
+    lwa.generate(freq * 1e3)
+    bm_eff = lwa.compute_bm_eff()
+
+    if print_report:
+        print "Redshift of model:        %2.2f" % z
+        print "Frequency:                %2.2f MHz" % (freq * 1e3)
+        print "Wavelength:               %2.2f m"   % wl_meters
+        print "Sky temperature:          %2.1f K" % (Tsky / 1e3)
+        print "Cosmological bandwidth:   %2.2f MHz" % (B * 1e3)
+        print "Min, max k_parallel:      %2.4f, %2.4f" % (np.min(np.abs(kpls)), np.max(kpls))
+        print "Beam eff solid angle:     %2.4fsr" % bm_eff
+        print "UV coverage max:          %2.2f" % np.max(uv_coverage)
+
+    #print "BM: %2.2f    Tsys: %2.2fK" % (bm_eff, Tsys / 1e3)
+
 
     #===============================EOR MODEL===================================
 
     #You can change this to have any model you want, as long as mk, mpk and p21 are returned
 
     #This is a dimensionless power spectrum, i.e., Delta^2
-    modelfile = opts['eor']
-    model = n.loadtxt(modelfile)
-    mk, mpk = model[:, 0] / h, model[:, 1]  #k, Delta^2(k)
+    #modelfile = opts['eor']
+    #model = n.loadtxt(modelfile)
+    mk, mpk = ps_model[:, 0] / h, ps_model[:, 1]  #k, Delta^2(k)
     #note that we're converting from Mpc to h/Mpc
-
     #interpolation function for the EoR model
+
     p21 = interpolate.interp1d(mk, mpk, kind='linear')
 
     #=================================MAIN CODE===================================
@@ -116,30 +133,25 @@ def calc_sense(arr_file, opts, print_report=True):
     uv_coverage[SIZE / 2:, SIZE / 2] = 0.
     if opts['no_ns']: uv_coverage[:, SIZE / 2] = 0.
 
-
-
     #loop over uv_coverage to calculate k_pr
     nonzero = n.where(uv_coverage > 0)
 
-    # Precalculate bm and Tsys
-    Tsys = Tsky + Trx
-    bm2 = bm / 2.  #beam^2 term calculated for Gaussian; see Parsons et al. 2014
-    bm_eff = bm ** 2 / bm2  # this can obviously be reduced; it isn't for clarity
-
-    bm_eff = (36.2/57.3)**2
-
-    #print "BM: %2.2f    Tsys: %2.2fK" % (bm_eff, Tsys / 1e3)
-
     for iu, iv in zip(nonzero[1], nonzero[0]):
-        u, v = (iu - SIZE / 2) * dish_size_in_lambda, (iv - SIZE / 2) * dish_size_in_lambda
+        #u, v = (iu - SIZE / 2) * dish_size_in_lambda, (iv - SIZE / 2) * dish_size_in_lambda
+
+        # convert u, v back into m, and then back into wavelength
+        u, v = (iu - SIZE / 2) * (wl_100mhz ), (iv - SIZE / 2) * (wl_100mhz)
+        u, v = u / wl_meters, v / wl_meters
         umag = n.sqrt(u ** 2 + v ** 2)
         kpr = umag * dk_du(z)
         kprs.append(kpr)
         #calculate horizon limit for baseline of length umag
         if opts['model'] in ['mod', 'pess']:
-            hor = dk_deta(z) * umag / opts['freq'] + opts['buff']
+            hor = dk_deta(z) * umag / freq + opts['buff']
         elif opts['model'] in ['opt']:
-            hor = dk_deta(z) * (umag / opts['freq']) * n.sin(first_null / 2)
+            hor = dk_deta(z) * (umag / freq) #* n.sin(first_null / 2)
+            #hor = 0.001
+            #print hor
         else:
             print '%s is not a valid foreground model; Aborting...' % opts['model'];
             sys.exit()
@@ -148,15 +160,19 @@ def calc_sense(arr_file, opts, print_report=True):
             Tsense[kpr] = n.zeros_like(kpls)
         for i, kpl in enumerate(kpls):
             #exclude k_parallel modes contaminated by foregrounds
-            if n.abs(kpl) < hor: continue
+            if n.abs(kpl) < hor:
+                continue
             k = n.sqrt(kpl ** 2 + kpr ** 2)
-            if k < min(mk): continue
+            if k < n.min(mk):
+                continue
             #don't include values beyond the interpolation range (no sensitivity anyway)
-            if k > n.max(mk): continue
-            tot_integration = uv_coverage[iv, iu] * opts['ndays']
+            if k > n.max(mk):
+                continue
+
             delta21 = p21(k)
 
             scalar = X2Y(z) * bm_eff * B * k ** 3 / (2 * n.pi ** 2)
+            tot_integration = uv_coverage[iv, iu] * opts['ndays']
             Trms = Tsys / n.sqrt(2 * (B * 1e9) * tot_integration)
             #add errors in inverse quadrature
             sense[kpr][i] += 1. / (scalar * Trms ** 2 + delta21) ** 2
@@ -173,7 +189,8 @@ def calc_sense(arr_file, opts, print_report=True):
     sense1d = n.zeros_like(kmag)
     Tsense1d = n.zeros_like(kmag)
     for ind, kpr in enumerate(sense.keys()):
-        #errors were added in inverse quadrature, now need to invert and take square root to have error bars; also divide errors by number of indep. fields
+        #errors were added in inverse quadrature, now need to invert and take square root
+        # to have error bars; also divide errors by number of indep. fields
         sense[kpr] = sense[kpr] ** -.5 / n.sqrt(n_lstbins)
         Tsense[kpr] = Tsense[kpr] ** -.5 / n.sqrt(n_lstbins)
         for i, kpl in enumerate(kpls):
@@ -188,20 +205,16 @@ def calc_sense(arr_file, opts, print_report=True):
         sense1d[ind] = kbin ** -.5
         Tsense1d[ind] = Tsense1d[ind] ** -.5
 
-    #save results to output npz
-    eorbn = os.path.basename(opts['eor'])
-
     sense_dict = {
         'name': name,
         'model': opts['model'],
-        'freq': opts['freq'],
-        'eorbn': eorbn,
+        'freq': freq,
         'ks': kmag,
         'errs': sense1d,
         'T_errs': Tsense1d
     }
 
-    hkl.dump(sense_dict, 'sensitivities/%s_%s_%.3f_%s.hkl' % (name, opts['model'], opts['freq'], eorbn))
+    hkl.dump(sense_dict, 'sensitivities/%s_%s_%.3f_%s.hkl' % (name, opts['model'], freq, opts['ps_model']))
 
     #calculate significance with least-squares fit of amplitude
     A = p21(kmag)
@@ -221,15 +234,12 @@ def calc_sense(arr_file, opts, print_report=True):
 
     outdict = {'z': z,
                'snr': snr,
-               'f_mhz': opts['freq'],
+               'f_mhz': freq,
                'T_sky': Tsky
     }
 
     if print_report:
-        print "Redshift of model: %2.2f" % z
-        print "Frequency:         %2.2f MHz" % (opts['freq'] * 1e3)
-        print "Sky temperature:   %2.1f K" % (Tsky / 1e3)
-        print "SNR: %s" % snr
+        print "SNR:               %.4f" % snr
 
     return outdict
 
