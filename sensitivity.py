@@ -149,6 +149,8 @@ def calc_sense(arr_file, ps_model, opts, print_report=True):
             hor = dk_deta(z) * umag / freq + opts['buff']
         elif opts['model'] in ['opt']:
             hor = dk_deta(z) * (umag / freq) #* n.sin(first_null / 2)
+        elif opts['model'] in ['trott']:
+            hor = 0.1
         elif opts['model'] in ['none']:
             hor = 0.00
         else:
@@ -204,21 +206,25 @@ def calc_sense(arr_file, ps_model, opts, print_report=True):
         sense1d[ind] = kbin ** -.5
         Tsense1d[ind] = Tsense1d[ind] ** -.5
 
+    #calculate significance with least-squares fit of amplitude
+    A = p21(kmag)
+    M = p21(kmag)
+
     sense_dict = {
         'name': name,
         'model': opts['model'],
         'freq': freq,
         'ks': kmag,
         'errs': sense1d,
-        'T_errs': Tsense1d
+        'T_errs': Tsense1d,
+        'p21': A
     }
 
     ps_model = os.path.basename(opts['ps_model'])
     hkl.dump(sense_dict, 'sensitivities/%s_%s_%.3f_%s.hkl' % (name, opts['model'], freq, ps_model))
 
-    #calculate significance with least-squares fit of amplitude
-    A = p21(kmag)
-    M = p21(kmag)
+
+
     wA, wM = A * (1. / sense1d), M * (1. / sense1d)
     wA, wM = n.matrix(wA).T, n.matrix(wM).T
     amp = (wA.T * wA).I * (wA.T * wM)
