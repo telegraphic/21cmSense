@@ -140,8 +140,7 @@ def calc_sense(arr_file, ps_model, opts, print_report=True):
         #u, v = (iu - SIZE / 2) * dish_size_in_lambda, (iv - SIZE / 2) * dish_size_in_lambda
 
         # convert u, v back into m, and then back into wavelength
-        u, v = (iu - SIZE / 2) * (wl_100mhz ), (iv - SIZE / 2) * (wl_100mhz)
-        u, v = u / wl_meters, v / wl_meters
+        u, v = (iu - SIZE / 2) * 4.0, (iv - SIZE / 2) * 4.0
         umag = n.sqrt(u ** 2 + v ** 2)
         kpr = umag * dk_du(z)
         kprs.append(kpr)
@@ -150,8 +149,8 @@ def calc_sense(arr_file, ps_model, opts, print_report=True):
             hor = dk_deta(z) * umag / freq + opts['buff']
         elif opts['model'] in ['opt']:
             hor = dk_deta(z) * (umag / freq) #* n.sin(first_null / 2)
-            #hor = 0.001
-            #print hor
+        elif opts['model'] in ['none']:
+            hor = 0.00
         else:
             print '%s is not a valid foreground model; Aborting...' % opts['model'];
             sys.exit()
@@ -214,7 +213,8 @@ def calc_sense(arr_file, ps_model, opts, print_report=True):
         'T_errs': Tsense1d
     }
 
-    hkl.dump(sense_dict, 'sensitivities/%s_%s_%.3f_%s.hkl' % (name, opts['model'], freq, opts['ps_model']))
+    ps_model = os.path.basename(opts['ps_model'])
+    hkl.dump(sense_dict, 'sensitivities/%s_%s_%.3f_%s.hkl' % (name, opts['model'], freq, ps_model))
 
     #calculate significance with least-squares fit of amplitude
     A = p21(kmag)

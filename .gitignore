@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# 21cmsense outputs
+output/*
+uv_coverages/*
+sensitivities/*
 
 # Apple
 .DS_store

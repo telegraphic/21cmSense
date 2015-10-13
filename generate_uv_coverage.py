@@ -85,9 +85,7 @@ def generate_uv_coverage(aa, bl_max=None, track=None):
     print 'The longest baseline being included is %.2f m' % bl_len_max
 
     # grid each baseline type into uv plane
-    # Grid to lambda / 4 at 100 MHz
-    wl_100mhz = 2.99
-    dim = n.round(bl_len_max / (wl_100mhz)) + 1
+    dim = n.round(bl_len_max / 4.0) + 1
     uvsum, quadsum = n.zeros((dim, dim)), n.zeros((dim, dim))  # quadsum adds all non-instantaneously-redundant
                                                                # baselines incoherently
     for cnt, uvbin in enumerate(uvbins):
@@ -101,7 +99,7 @@ def generate_uv_coverage(aa, bl_max=None, track=None):
             nbls = len(uvbins[uvbin])
             i, j = bl.split(',')
             i, j = int(i), int(j)
-            u, v, w = aa.gen_uvw(i, j, src=obs_zen) / (wl_100mhz)
+            u, v, w = aa.gen_uvw(i, j, src=obs_zen) / 4.0
             _beam = beamgridder(xcen=u, ycen=v, size=dim)
             uvplane += nbls * _beam
             uvsum += nbls * _beam
