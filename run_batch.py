@@ -32,13 +32,13 @@ from sensitivity import calc_sense
 ps_model_dir = "models/fialkov_h2"
 arr_file     = 'brawl127.txt'                               # Name of antenna array python module file
 uv_file      = 'uv_coverages/BRAWLdrift_arrayfile.hkl'      # Name of generated array file from generate_uv_coverage.py
-redshift_range = (15, 25)                                   # Set redshift range of interest
-n_redshifts    = 20                                         # Number of redshift values to calculate within range
+redshift_range = (15, 30)                                   # Set redshift range of interest
+n_redshifts    = 15                                        # Number of redshift values to calculate within range
 
 ovro = ('37.240391', '-118.281667', 1184)
 
-regenerate_array       = False                               # Regenerate array geometry
-regenerate_uv_coverage = False                               # Regenerate array file via generate_uv_coverage.py
+regenerate_array       = True                               # Regenerate array geometry
+regenerate_uv_coverage = True                               # Regenerate array file via generate_uv_coverage.py
 run_calc_sense         = True                                # Run sensitivity calculation
 save_snr_table         = False
 
@@ -59,7 +59,7 @@ if regenerate_uv_coverage:
     #Set other array parameters here
     uv_params = {
         'name': 'BRAWL',
-        'Trx': 500 * 1e3  # receiver temp in mK, T_sky is taken care of later
+        'Trx': 400 * 1e3  # receiver temp in mK, T_sky is taken care of later
     }
 
     aa = generate_aa(ovro, ant_pos, uv_params)
@@ -75,7 +75,7 @@ if run_calc_sense:
             freq = z2f(z)
 
             obs_opts = {
-                    'model': 'none',
+                    'model': 'trott',
                     'buff': 0.1,
                     'ndays': 180,
                     'n_per_day': 12,
@@ -95,14 +95,14 @@ if run_calc_sense:
 
             ps_z, ps_k, ps_model = load_21cm_model("models/fialkov_h1")
             ps_model_z = slice_model_along_z(z, ps_z, ps_k, ps_model)
-            obs_opts['ps_model'] = "models/fialkov_s1"
+            obs_opts['ps_model'] = "models/fialkov_h1"
             sense_dict = calc_sense(uv_file, ps_model_z, obs_opts, print_report=False)
             snrs_h1.append(sense_dict['snr'])
 
-            obs_opts['ps_model'] = load_21cm_model("models/fialkov_h2")
+            ps_z, ps_k, ps_model = load_21cm_model("models/fialkov_h2")
             ps_model_z = slice_model_along_z(z, ps_z, ps_k, ps_model)
             obs_opts['ps_model'] = "models/fialkov_h2"
-            sense_dict = calc_sense(uv_file, ps_model_z, obs_opts, print_report=True)
+            sense_dict = calc_sense(uv_file, ps_model_z, obs_opts, print_report=False)
             snrs_h2.append(sense_dict['snr'])
 
             ps_z, ps_k, ps_model = load_21cm_model("models/fialkov_s01")
@@ -117,7 +117,7 @@ if run_calc_sense:
             sense_dict = calc_sense(uv_file, ps_model_z, obs_opts, print_report=False)
             snrs_s1.append(sense_dict['snr'])
 
-            obs_opts['ps_model'] = load_21cm_model("models/fialkov_s2")
+            ps_z, ps_k, ps_model = load_21cm_model("models/fialkov_s2")
             ps_model_z = slice_model_along_z(z, ps_z, ps_k, ps_model)
             obs_opts['ps_model'] = "models/fialkov_s2"
             sense_dict = calc_sense(uv_file, ps_model_z, obs_opts, print_report=True)
