@@ -26,13 +26,15 @@ def load_21cm_model(directory):
     ps = np.genfromtxt(os.path.join(directory, 'PS.txt'))
     return z, k, ps
 
-def plot_power_spectrum(z, k, ps):
-    plt.imshow(ps, extent=(k[0], k[-1], z[0], z[-1]), aspect='auto', cmap='jet')
-    plt.colorbar(label='mK$^2$')
+def plot_power_spectrum(z, k, ps, show=True, savefig=False):
+    plt.imshow(np.log(ps), extent=(k[0], k[-1], z[0], z[-1]), aspect='auto', cmap='Blues')
+    plt.colorbar(label='log mK$^2$')
     plt.xlabel('k (1/Mpc)')
     plt.ylabel('Redshift (z)')
-    plt.savefig('figures/ps-model.pdf')
-    plt.show()
+    if savefig:
+        plt.savefig('figures/ps-model.pdf')
+    if show:
+        plt.show()
 
 def slice_model_along_z(z_slice, z, k, ps):
     """ Slice a 2D (z vs k) power spectrum model along z, for a given redshift z.
@@ -54,21 +56,38 @@ def slice_model_along_z(z_slice, z, k, ps):
     return model_out
 
 if __name__ == "__main__":
-    z, k, ps = load_21cm_model('fialkov')
+    plt.figure("Fialkov models", figsize=(10, 8))
 
-    plot_power_spectrum(z, k, ps)
+    z, k, ps = load_21cm_model('models/fialkov_h01')
+    plt.subplot(3,2,2)
+    plt.title("Weak heating, hard x-ray")
+    plot_power_spectrum(z, k, ps, show=False)
 
-    z_targets = np.arange(10, 40, 0.25)
+    z, k, ps = load_21cm_model('models/fialkov_h1')
+    plt.subplot(3,2,4)
+    plt.title("Normal heating, hard x-ray")
+    plot_power_spectrum(z, k, ps, show=False)
 
-    for z_target in z_targets:
-        model_out = slice_model_along_z(z_target, z, k, ps)
-        np.savetxt('models/fialkov_z%2.2f_psh.txt' % z_target, model_out, delimiter='\t')
+    z, k, ps = load_21cm_model('models/fialkov_h2')
+    plt.subplot(3,2,6)
+    plt.title("Strong heating, hard x-ray")
+    plot_power_spectrum(z, k, ps, show=False)
 
-        plt.figure('Model k vs mK')
-        plt.plot(model_out[:, 0], model_out[:, 1], c='#333333')
-        plt.xlabel('k (1/Mpc)')
-        plt.ylabel('mK$^2$')
-        plt.title('z = 20.5')
-        plt.savefig('figures/fialkov_z%2.2f_psh.pdf' % z_target)
-        plt.clf()
+    z, k, ps = load_21cm_model('models/fialkov_s01')
+    plt.subplot(3,2,1)
+    plt.title("Weak heating, soft x-ray")
+    plot_power_spectrum(z, k, ps, show=False)
 
+    z, k, ps = load_21cm_model('models/fialkov_s1')
+    plt.subplot(3,2,3)
+    plt.title("Normal heating, soft x-ray")
+    plot_power_spectrum(z, k, ps, show=False)
+
+    z, k, ps = load_21cm_model('models/fialkov_s2')
+    plt.subplot(3,2,5)
+    plt.title("Strong heating, soft x-ray")
+    plot_power_spectrum(z, k, ps, show=False)
+
+    plt.tight_layout()
+    plt.savefig("figures/fialkov_models.pdf")
+    plt.show()
