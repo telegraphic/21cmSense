@@ -89,6 +89,7 @@ def calc_sense(arr_file, ps_model, opts, print_report=True):
     lwa = lwa_antenna.LwaBeamPattern()
     lwa.generate(freq * 1e3)
     bm_eff = lwa.compute_bm_eff()
+    dish_size_in_lambda = lwa.estimate_dish_size_in_lambda()
 
     if print_report:
         print "Redshift of model:        %2.2f" % z
@@ -98,6 +99,7 @@ def calc_sense(arr_file, ps_model, opts, print_report=True):
         print "Cosmological bandwidth:   %2.2f MHz" % (B * 1e3)
         print "Min, max k_parallel:      %2.4f, %2.4f" % (np.min(np.abs(kpls)), np.max(kpls))
         print "Beam eff solid angle:     %2.4fsr" % bm_eff
+        print "Eff. dish size in lambda: %2.2f Lambda" % dish_size_in_lambda
         print "UV coverage max:          %2.2f" % np.max(uv_coverage)
 
     #print "BM: %2.2f    Tsys: %2.2fK" % (bm_eff, Tsys / 1e3)
@@ -137,10 +139,9 @@ def calc_sense(arr_file, ps_model, opts, print_report=True):
     nonzero = n.where(uv_coverage > 0)
 
     for iu, iv in zip(nonzero[1], nonzero[0]):
-        #u, v = (iu - SIZE / 2) * dish_size_in_lambda, (iv - SIZE / 2) * dish_size_in_lambda
 
         # convert u, v back into m, and then back into wavelength
-        u, v = (iu - SIZE / 2) * 4.0, (iv - SIZE / 2) * 4.0
+        u, v = (iu - SIZE / 2) * dish_size_in_lambda, (iv - SIZE / 2) * dish_size_in_lambda
         umag = n.sqrt(u ** 2 + v ** 2)
         kpr = umag * dk_du(z)
         kprs.append(kpr)

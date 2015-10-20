@@ -183,6 +183,12 @@ class LwaBeamPattern(object):
         wl = 2.99e8 / (self.generated_beam_freq * 1e6)
         return wl
 
+    def estimate_dish_size_in_lambda(self):
+        """ Estimate dish size in lambda  """
+        area_fwhm = 4*np.pi / self.compute_fwhm()**2 * np.pi * self.compute_wl()**2
+        dsil = 2* np.sqrt(area_fwhm / np.pi) / self.compute_wl()
+        return dsil
+
 if __name__ == "__main__":
     lwa = LwaBeamPattern()
     lwa.generate(50)
@@ -195,7 +201,7 @@ if __name__ == "__main__":
     print "Effective radius", np.sqrt(area_fwhm / np.pi)
     print "Beam eff from FWHM", lwa.compute_bm_eff_from_fwhm()
     print "Wavelength", lwa.compute_wl()
-    print "Dish size in lambda", np.sqrt(area_fwhm / np.pi) / lwa.compute_wl()
+    print "Dish size in lambda", lwa.estimate_dish_size_in_lambda()
 
     print "Directivity", lwa.compute_directivity()
     print "Solid angle", lwa.compute_solid_angle()

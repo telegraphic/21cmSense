@@ -14,8 +14,10 @@ import hickle as hkl
 
 from conversion_utils import *
 from generate_array import *
+from antenna import lwa_antenna
 
-def generate_uv_coverage(aa, bl_max=None, track=None):
+
+def generate_uv_coverage(aa, freq, bl_max=None, track=None):
     """ Generate UV coverage for a given antenna array.
 
     Parameters:
@@ -30,11 +32,14 @@ def generate_uv_coverage(aa, bl_max=None, track=None):
     prms = aa.get_arr_params()
     if track:
         obs_duration=60.*track
-        name = prms['name']+'track_%.1fhr' % track
+        name = prms['name'] + 'track_%.1fhr' % track
     else:
         obs_duration = 12.0 * 60  # A dipole-type antenna sees the entire sky for 12 hours
-        name = prms['name']+'drift'; print name
-    #dish_size_in_lambda = prms['dish_size_in_lambda']
+        name = prms['name'] + 'drift'
+
+    lwa = lwa_antenna.LwaBeamPattern()
+    lwa.generate(freq * 1e3)
+    dish_size_in_lambda = lwa.estimate_dish_size_in_lambda()
 
     #==========================FIDUCIAL OBSERVATION PARAMETERS===================
 
@@ -85,7 +90,7 @@ def generate_uv_coverage(aa, bl_max=None, track=None):
     print 'The longest baseline being included is %.2f m' % bl_len_max
 
     # grid each baseline type into uv plane
-    dim = n.round(bl_len_max / 4.0) + 1
+    dim = n.round(bl_len_max / dish_size_in_lambda) + 1
     uvsum, quadsum = n.zeros((dim, dim)), n.zeros((dim, dim))  # quadsum adds all non-instantaneously-redundant
                                                                # baselines incoherently
     for cnt, uvbin in enumerate(uvbins):
@@ -99,7 +104,7 @@ def generate_uv_coverage(aa, bl_max=None, track=None):
             nbls = len(uvbins[uvbin])
             i, j = bl.split(',')
             i, j = int(i), int(j)
-            u, v, w = aa.gen_uvw(i, j, src=obs_zen) / 4.0
+            u, v, w = aa.gen_uvw(i, j, src=obs_zen) / dish_size_in_lambda
             _beam = beamgridder(xcen=u, ycen=v, size=dim)
             uvplane += nbls * _beam
             uvsum += nbls * _beam
@@ -114,7 +119,9 @@ def generate_uv_coverage(aa, bl_max=None, track=None):
         'name': name,
         'obs_duration': obs_duration,
         'Trx': prms['Trx'],
-        't_int': t_int
+        't_int': t_int,
+        'freq_ghz': freq,
+        'dish_size_in_lambda': dish_size_in_lambda
     }
 
     return uv_coverage
@@ -125,8 +132,17 @@ def save_uv_coverage(uv_coverage, directory_out):
     hkl.dump(uv_coverage, fout)
 
 def plot_uv_coverage(uv_coverage, directory_out="figures"):
+    """ Plot UV coverage """
     fout = os.path.join(directory_out, "%s_uv_coverage.pdf" % uv_coverage['name'])
-    plt.imshow(uv_coverage['uv_coverage'], interpolation='nearest', aspect='auto')
+    uvc = uv_coverage['uv_coverage']
+    ds  = uv_coverage['dish_size_in_lambda']
+    plt.imshow(uvc,
+               interpolation='nearest',
+               aspect='auto',
+               extent=(-uvc.shape[0] / 2 * ds, uvc.shape[0] / 2 * ds, -uvc.shape[1] / 2 * ds, uvc.shape[1] / 2 * ds)
+               )
+    plt.xlabel("U ($\lambda$)")
+    plt.ylabel("V ($\lambda$)")
     plt.colorbar()
     plt.savefig(fout)
     plt.show()
@@ -144,7 +160,7 @@ if __name__ == "__main__":
     opts, args = o.parse_args(sys.argv[1:])
 
     ant_pos = generate_hexagon(7, 10, 1.0)
-    #plot_antenna_array(antpos)
+    plot_antenna_array(ant_pos)
     save_antenna_array(ant_pos, "brawl127.txt")
 
     ovro = ('37.240391', '-118.281667', 1184)
