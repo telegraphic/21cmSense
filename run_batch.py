@@ -34,7 +34,7 @@ ps_model_dir = "models/fialkov_h2"
 arr_file     = 'brawl127.txt'                               # Name of antenna array python module file
 uv_file      = 'uv_coverages/BRAWLdrift_arrayfile.hkl'      # Name of generated array file from generate_uv_coverage.py
 redshift_range = (15, 30)                                   # Set redshift range of interest
-n_redshifts    = 15                                         # Number of redshift values to calculate within range
+n_redshifts    = 16                                         # Number of redshift values to calculate within range
 
 ovro = ('37.240391', '-118.281667', 1184)
 
@@ -52,7 +52,7 @@ uv_params = {
 }
 
 obs_opts = {
-        'model': 'none',                                    # Foreground model to use
+        'model': 'trott',                                    # Foreground model to use
         'buff': 0.1,                                        # Buffer for foreground model
         'ndays': 180,                                       # Number of days observation
         'n_per_day': 12,                                    # Number of hours per day
@@ -159,7 +159,7 @@ if run_calc_sense:
     plt.xlim(redshift_range[0], redshift_range[1])
     plt.minorticks_on()
     plt.legend(frameon=False)
-    plt.savefig('figures/detection-snr-%s.pdf' % obs_opts['model'])
+    plt.savefig('figures/detection-snr-fg_%s.pdf' % obs_opts['model'])
 
     # Same plot, in frequency space instead of redshift
     plt.figure("SNR FREQUENCY")
@@ -175,5 +175,5 @@ if run_calc_sense:
     plt.axvspan(87.5, 108, color='#333333', alpha=0.5, lw=0)
     plt.minorticks_on()
     plt.legend(frameon=False)
-    plt.savefig('figures/detection-snr-freq-%s.pdf' % obs_opts['model'])
+    plt.savefig('figures/detection-snr-freq-fg_%s.pdf' % obs_opts['model'])
     plt.show()
