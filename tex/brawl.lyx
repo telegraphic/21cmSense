@@ -294,10 +294,73 @@ tt 21cmsense}
  package (Pober et.
  al.
  [REF]).
- The code has been modified to allow looping over multiple redshifts, and
- to allow redshift to be added as a command-line parameter which is parsed
- to compute frequency parameters.
  
+\end_layout
+
+\begin_layout Section
+Code modifications
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+{
+\backslash
+tt 21cmsense}
+\end_layout
+
+\end_inset
+
+ code has been modified reasonably extensively to make it more compatible
+ with the lower frequency range.
+ Some noteworthy changes:
+\end_layout
+
+\begin_layout Itemize
+Code now uses a simulated LWA antenna beam response to compute 
+\begin_inset Formula $\Omega'$
+\end_inset
+
+, the `effective beam solid angle' and the `dish size in 
+\begin_inset Formula $\lambda$
+\end_inset
+
+' parameters used in the code for sensitivity estimates and gridding.
+\end_layout
+
+\begin_layout Itemize
+The two main script routines were converted into functions, so that they
+ can be called/imported in other scripts so as to run loops over parameter
+ spaces.
+\end_layout
+
+\begin_layout Itemize
+Added some plotting functionality for quick-looks at UV coverage, models,
+ and antennas
+\end_layout
+
+\begin_layout Itemize
+Modified code to accept 2D power spectra as an input, from which 1D slices
+ can be generated.
+\end_layout
+
+\begin_layout Itemize
+Added `Trott' foreground model (simple scalar 
+\begin_inset Formula $k_{\Vert}$
+\end_inset
+
+value).
+\end_layout
+
+\begin_layout Standard
+Additionally, the code no longer does frequency scaling, as the fractional
+ change from 30-88 MHz is large.
+ This means for every redshift of interest, UV coverage is recalculated,
+ adding extra compute time to the sensitivity estimate.
 \end_layout
 
 \begin_layout Section
@@ -340,8 +403,6 @@ tt 21cmsense}
 \end_inset
 
 .
- These power spectra (PS) are for a `bleak' model and the signal is likely
- stronger.
  Note that there is noise at lower 
 \begin_inset Formula $k$
 \end_inset
@@ -369,6 +430,15 @@ reference "fig:antpos"
 
  modes closer spacing would be preferable, mutual coupling between antenna
  elements is of concern.
+ UV coverage is shown in (Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:uv-coverage"
+
+\end_inset
+
+), with the value of each cell representing the number of baselines sampling
+ that (u,v) mode.
 \end_layout
 
 \begin_layout Paragraph
@@ -376,57 +446,10 @@ Antenna parameters
 \end_layout
 
 \begin_layout Standard
-We assume the use of an LWA gain antenna, with the approximation that the
- gain is a constant 9 dB over the frequency range covered (beam solid angle
- of 
-\begin_inset Formula $\pi/2$
-\end_inset
-
-).
- For compatibility with 
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-{
-\backslash
-tt 21cmsense}
-\end_layout
-
-\end_inset
-
-, this is expressed as a 2D Gaussian with beamwidth 
-\begin_inset Formula $\pi/8$
-\end_inset
-
-, and the parameter 
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-{
-\backslash
-tt
-\end_layout
-
-\end_inset
-
- dish_size_in_lambda
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-}
-\end_layout
-
-\end_inset
-
- is set to 2.
- Ideally, we would use antenna parameters as modelled from an EM package;
- this is worth looking into at a later date.
+We assume the use of an LWA antenna, and use simulations from NEC4 of the
+ beam pattern.
+ Aperture efficiency is not currently considered.
+ 
 \end_layout
 
 \begin_layout Paragraph
@@ -467,6 +490,40 @@ with
 \end_layout
 
 \begin_layout Paragraph
+Foreground model
+\end_layout
+
+\begin_layout Standard
+We use a foreground model based off simulations by C.
+ Trott (Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Foreground"
+
+\end_inset
+
+), with 
+\begin_inset Formula $k_{\Vert}=0.1$
+\end_inset
+
+ Mpc
+\begin_inset Formula $^{-1}$
+\end_inset
+
+ .
+ Of note is that these predict no `wedge', rather a scalar horizon (aka
+ `brick') on 
+\begin_inset Formula $k_{\Vert}$
+\end_inset
+
+ (presumably the wedge is off at higher 
+\begin_inset Formula $k_{\perp}$
+\end_inset
+
+ than those measured).
+\end_layout
+
+\begin_layout Paragraph
 Observation parameters
 \end_layout
 
@@ -483,10 +540,14 @@ Results
 \end_layout
 
 \begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
 \begin_inset Float table
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \align center
@@ -656,6 +717,11 @@ end{tabular}
 
 \end_inset
 
+
+\end_layout
+
+\end_inset
+
 Using 
 \begin_inset ERT
 status open
@@ -670,15 +736,9 @@ tt 21cmsense}
 \end_inset
 
 , we computed the expected signal-to-noise ratio for the A.
- Fialkov PS model, under `conservative' and `optimistic' foreground removal
+ Fialkov PS model, under `Trott-limited' and complete foreground removal
  models.
- Following from Pober et.
- al., consevative is defined as the foreground wedge extending 0.1 h Mpc
-\begin_inset Formula $^{−1}$
-\end_inset
-
- beyond horizon limit, and optimistic is defined as the foreground wedge
- extending only into the FWHM of the instrument's primary beam.
+ 
 \end_layout
 
 \begin_layout Standard
@@ -690,12 +750,23 @@ Simulations suggest that a
 \begin_inset Formula $16\leq z\leq18$
 \end_inset
 
-.
- The conservative model suggests that foreground `avoidance' only will not
- result in SNR levels high enough for detection, meaning that a foreground
- model is required.
- The minimally-redundant LWA-OVRO array would therefore be required for
- foreground characterization.
+ for several models (Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:snr"
+
+\end_inset
+
+), assuming all modes above the 0.1 Mpc
+\begin_inset Formula $^{-1}$
+\end_inset
+
+ limit can be used.
+ Perfect foreground removal results in 
+\begin_inset Formula $>5\sigma$
+\end_inset
+
+ detections for all models, but this may not be plausible.
 \end_layout
 
 \begin_layout Standard
@@ -714,8 +785,8 @@ status collapsed
 \begin_layout Plain Layout
 \align center
 \begin_inset Graphics
-	filename ../figures/anastasia-model.pdf
-	width 13.2cm
+	filename /workdata/21cmSense/figures/fialkov_models.pdf
+	width 100col%
 
 \end_inset
 
@@ -726,7 +797,8 @@ status collapsed
 \begin_inset Caption Standard
 
 \begin_layout Plain Layout
-Simulated 21-cm power spectrum (preliminary)
+Simulated 21-cm power spectrum over the Dark Ages and Cosmic Dawn, for a
+ variety of heating and x-ray luminosity scenarios.
 \begin_inset CommandInset label
 LatexCommand label
 name "fig:pspec"
@@ -796,8 +868,165 @@ status collapsed
 \begin_layout Plain Layout
 \align center
 \begin_inset Graphics
-	filename /workdata/21cmSense/figures/detection-snr.pdf
+	filename /workdata/21cmSense/figures/BRAWLdrift_uv_coverage.pdf
 	width 13.2cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+UV coverage of BRAWL array, as computed at 50 MHz.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:uv-coverage"
+
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /workdata/21cmSense/foregrounds/trott/lwa_pt_gs_z18.png
+	width 13.2cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Foreground model, from C.
+ Trott.
+ Clearly this is not `wedge-like', but `brick-like'.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Foreground"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /workdata/21cmSense/figures/detection-snr-fg_none.pdf
+	width 13.2cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+No foregrounds
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /workdata/21cmSense/figures/detection-snr-fg_trott.pdf
+	width 13.2cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Trott foreground model, i.e.
+ 
+\begin_inset Formula $k_{\Vert}=0.1$
+\end_inset
+
+ Mpc
+\begin_inset Formula $^{-1}$
+\end_inset
+
+ .
+\end_layout
+
+\end_inset
+
+
+\end_layout
 
 \end_inset
 
@@ -818,11 +1047,6 @@ name "fig:snr"
 
 \end_inset
 
-.
-\end_layout
-
-\end_inset
-
 
 \end_layout
 
@@ -831,7 +1055,8 @@ name "fig:snr"
 
 \end_layout
 
-\begin_layout Standard
+\end_inset
+
 
 \end_layout
 
