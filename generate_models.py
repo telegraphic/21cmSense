@@ -27,7 +27,7 @@ def load_21cm_model(directory):
     return z, k, ps
 
 def plot_power_spectrum(z, k, ps, show=True, savefig=False):
-    plt.imshow(np.log(ps), extent=(k[0], k[-1], z[0], z[-1]), aspect='auto', cmap='Blues')
+    plt.imshow(np.log(ps), extent=(k[0], k[-1], z[0], z[-1]), aspect='auto', cmap='inferno')
     plt.colorbar(label='log mK$^2$')
     plt.xlabel('k (1/Mpc)')
     plt.ylabel('Redshift (z)')

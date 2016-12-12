@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 # run_batch.py
 
@@ -31,17 +32,18 @@ from sensitivity import calc_sense
 #####
 
 ps_model_dir = "models/fialkov_h2"
-arr_file     = 'brawl127.txt'                               # Name of antenna array python module file
+arr_file     = 'lwa_ovro.txt'                               # Name of antenna array python module file
 uv_file      = 'uv_coverages/BRAWLdrift_arrayfile.hkl'      # Name of generated array file from generate_uv_coverage.py
 redshift_range = (15, 30)                                   # Set redshift range of interest
 n_redshifts    = 16                                         # Number of redshift values to calculate within range
+bl_max         = 500
 
 ovro = ('37.240391', '-118.281667', 1184)
 
 show_power_spectra     = False                              # Plot power spectra
-show_ant_array         = False                              # Plot antenna array
-regenerate_array       = False                              # Regenerate array geometry
-regenerate_uv_coverage = True                               # Regenerate array file via generate_uv_coverage.py
+show_ant_array         = True                               # Plot antenna array
+regenerate_array       = True                              # Regenerate array geometry
+regenerate_uv_coverage = True                                # Regenerate array file via generate_uv_coverage.py
 run_calc_sense         = True                               # Run sensitivity calculation
 save_snr_table         = False
 
@@ -52,15 +54,16 @@ uv_params = {
 }
 
 obs_opts = {
-        'model': 'trott',                                    # Foreground model to use
-        'buff': 0.1,                                        # Buffer for foreground model
-        'ndays': 180,                                       # Number of days observation
-        'n_per_day': 12,                                    # Number of hours per day
-        'bwidth': 0.028,                                    # Cosmological bandwidth @ 100 MHz
+        'model': 'trott',                                   # Foreground model to use
+        'buff': 0.05,                                       # Buffer for foreground model
+        'ndays': 360,                                       # Number of days observation
+        'n_per_day': 8.34,                                  # Number of hours per day
+        'bwidth': 0.032,                                    # Cosmological bandwidth @ 100 MHz
         'nchan': 200,                                       # NUmber of channels over cosmo. bw., sets k parallel range
         'no_ns': False,                                     # exclude or include N-S baselines
         'ps_model': '',                                     # Power spectra model directory
-        'z': 20                                             # Redshift of observation
+        'z': 20,                                             # Redshift of observation
+        'scale_bandwidth': True                             # Scale cosmological bandwidth with redshift (f0 = 100 MHz)
 }
 
 
@@ -71,8 +74,8 @@ if show_power_spectra:
 
 
 if regenerate_array:
-    ant_pos = generate_hexagon(7, 6, 1.0)
-    save_antenna_array(ant_pos, "brawl127.txt")
+    ant_pos = generate_hexagon(10, 10, 1.0)
+    save_antenna_array(ant_pos, "brawl256.txt")
 else:
     ant_pos = load_antenna_array(arr_file)
 
@@ -82,7 +85,7 @@ if show_ant_array:
 if regenerate_uv_coverage:
     freq = 0.05                                             # Set to 50 MHz, for plotting UV coverage only
     aa = generate_aa(ovro, ant_pos, uv_params)
-    uv = generate_uv_coverage(aa, freq)
+    uv = generate_uv_coverage(aa, freq, bl_max=bl_max)
     save_uv_coverage(uv, "uv_coverages")
     plot_uv_coverage(uv)
 
@@ -97,6 +100,7 @@ if run_calc_sense:
 
             # Regenerate UV coverage for given frequency
             uv = generate_uv_coverage(aa, freq)
+            uv = load_uv_coverage("BRAWLdrift_arrayfile.hkl")
 
             ps_z, ps_k, ps_model = load_21cm_model("models/fialkov_h01")
             ps_model_z = slice_model_along_z(z, ps_z, ps_k, ps_model)

@@ -73,8 +73,10 @@ def calc_sense(arr_file, ps_model, opts, print_report=True):
     z = opts['z']
     freq = z2f(z)                           # Frequency is now computed from input redshift
     wl_meters = 2.99e8 / (freq * 1e9)
-    B = B_cosmo(freq, f0=.150, B0=B)        # Scale bandwidth with frequency
-
+    if opts['scale_bandwidth']:
+        B = B_cosmo(freq, f0=.100, B0=B)        # Scale bandwidth with frequency
+    else:
+        B = B
     #dish_size_in_lambda = dish_size_in_lambda*(freq/.150)
     # Dish size is no longer frequency scaled!
 

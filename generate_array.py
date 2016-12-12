@@ -83,6 +83,7 @@ def generate_hexagon(n_side, l, scale_factor):
             antpos.append(((cen_x + dx) * l, row * dl, cen_z))
             if row != 0:
                 antpos.append(((cen_x + dx) * l, -row * dl, cen_z))
+    print "Antenna array has %i antennas" % len(antpos)
     return np.array(antpos)
 
 

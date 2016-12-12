@@ -131,6 +131,10 @@ def save_uv_coverage(uv_coverage, directory_out):
     fout = os.path.join(directory_out, "%s_arrayfile.hkl" % uv_coverage['name'])
     hkl.dump(uv_coverage, fout)
 
+def load_uv_coverage(filename, directory="uv_coverages"):
+    uv = hkl.load(os.path.join(directory, filename))
+    return uv
+    
 def plot_uv_coverage(uv_coverage, directory_out="figures"):
     """ Plot UV coverage """
     fout = os.path.join(directory_out, "%s_uv_coverage.pdf" % uv_coverage['name'])

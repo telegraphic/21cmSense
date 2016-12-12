@@ -66,14 +66,17 @@ for row in n.arange(nside):
 
 import pylab as plt
 import numpy as np
+
 antpos = np.array(antpos)
 plt.plot(antpos[:,0], antpos[:, 1], 'o', c='#333333')
 plt.xlabel('x-pos [m]')
 plt.ylabel('y-pos [m]')
-plt.ylim(-63, 63)
+plt.xlim(np.min(antpos[:, 0]) - 2, np.max(antpos[:, 0]) + 2)
+plt.ylim(np.min(antpos[:, 1]) - 2, np.max(antpos[:, 1]) + 2)
 plt.minorticks_on()
 plt.savefig("figures/antenna-positions.pdf")
 plt.show()
+
 
 #Set other array parameters here
 prms = {
